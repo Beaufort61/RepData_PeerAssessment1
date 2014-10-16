@@ -1,10 +1,3 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
-
 
 
 ## What is mean total number of steps taken per day?
