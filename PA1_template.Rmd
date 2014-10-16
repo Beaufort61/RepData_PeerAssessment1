@@ -1,3 +1,4 @@
+
 ---
 title: "Reproducible Research: Peer Assessment 1"
 output: 
@@ -5,21 +6,108 @@ output:
     keep_md: true
 ---
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+opts_chunk$set(echo=FALSE)
+setwd("E:\\Reproducible Research\\Assessment 1")
+options(digits=7)
 
-## Loading and preprocessing the data
+library(plyr)
+library(lubridate)
+library(lattice)
+library(xtable)
 
-
+allData <- read.csv("./activity.csv", stringsAsFactors=FALSE)
+activityData <- allData[complete.cases(allData),]
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r TotalStepsNoNA}
+plotData <-tapply(activityData$steps, activityData$date, FUN = sum)
+barplot( plotData,
+         col="mistyrose",
+         main='Total number of steps each day (missing values removed)',
+         xlab="Date",
+         ylab="Steps",
+         cex.names=0.5,
+         names.arg=format(ymd(names(plotData)),"%d/%m")
+      )
+```
 
+The mean total is `r sprintf("%.1f", mean(plotData))`.  The median total is `r median(plotData)`.
+
+---
 
 ## What is the average daily activity pattern?
 
+```{r DailyActivity}
+plotData <- aggregate(steps~interval, data=activityData, FUN=mean)
+plot( plotData$interval,
+      plotData$steps, 
+      main="Mean number of steps per 5-minute interval",
+      xlab="Interval",
+      ylab="Steps",
+      type="l",
+      col="darkcyan"
+    )
 
+intervalMeans <- aggregate(steps~interval, data=activityData, FUN=mean)
+x<-intervalMeans[which.max(intervalMeans$steps),]$interval
+```
 
-## Imputing missing values
+Interval `r sprintf("%d", x)` on average across all the days in the dataset, contains the maximum number of steps.
 
+---
 
+## Inputing missing values
+
+The total number of rows with 'NA's is `r nrow(allData) - nrow(activityData)`.
+
+```{r TotalStepsWithNA}
+allData$steps <- ifelse( is.na(allData$steps), 
+                         intervalMeans$steps[ match(allData$interval, intervalMeans$interval) ], 
+                         allData$steps )
+plotData <-tapply(allData$steps, allData$date, FUN = sum)
+barplot( plotData,
+         col="mistyrose",
+         main='Total number of steps each day (missing values estimated)',
+         xlab="Date",
+         ylab="Steps",
+         cex.names=0.5,
+         names.arg=format(ymd(names(plotData)),"%d/%m")
+      )
+```
+
+The mean total is `r sprintf("%.1f", mean(plotData))`.  The median total is `r sprintf("%.1f", median(plotData))`.
+
+As the NA replacement algorithm substituted the interval mean, the mean total has not changed but the median total has.
+
+---
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r WeeklyActivity}
+allData$date <- ymd(allData$date)
+allData$weekend <- sapply( allData$date, 
+                           function(x) 
+                           { 
+                              ifelse( wday(x, label=TRUE) %in% c('Sat', 'Sun'),
+                                      "weekend", 
+                                      "weekday" )
+                           } 
+                         )
+plotData <- aggregate(steps~interval+weekend, data=allData, FUN=mean)
+
+xyplot( steps~interval | weekend, 
+        main='Mean number of steps per 5-minute interval',
+        xlab="Interval",
+        ylab="Steps",        
+        type="l",
+        col="darkcyan",
+        layout=c(1,2),
+        plotData )
+```
+
+
+
+
